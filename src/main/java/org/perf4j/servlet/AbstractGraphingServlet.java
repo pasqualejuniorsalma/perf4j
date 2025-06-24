@@ -36,6 +36,8 @@ import java.util.Map;
  * @author Alex Devine
  */
 public abstract class AbstractGraphingServlet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+    
     /**
      * Setting an init parameter "graphNames" to a comma-separated list of the names of graphs to display by default
      * sets this member variable. Subclass implementations determine how graphs are named. For example, the
@@ -53,10 +55,11 @@ public abstract class AbstractGraphingServlet extends HttpServlet {
 
     public void destroy() {
         graphNames = null;
-    }
-
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+    }    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // Set security headers
+        addSecurityHeaders(response);
+        
         Map<String, StatisticsChartGenerator> chartsByName = getChartGeneratorsToDisplay(request);
 
         response.setContentType("text/html;charset=utf-8");
@@ -101,14 +104,17 @@ public abstract class AbstractGraphingServlet extends HttpServlet {
                               StatisticsChartGenerator chartGenerator,
                               HttpServletRequest request,
                               HttpServletResponse response) throws ServletException, IOException {
-        response.getWriter().println("<br><br>");
-
-        String chartUrl = (chartGenerator == null) ? null : chartGenerator.getChartUrl();
+        response.getWriter().println("<br><br>");        String chartUrl = (chartGenerator == null) ? null : chartGenerator.getChartUrl();
         if (chartUrl != null) {
-            response.getWriter().println("<b>" + name + "</b><br>");
-            response.getWriter().println("<img src=\"" + chartUrl + "\">");
+            // Escape HTML to prevent XSS attacks
+            String escapedName = escapeHtml(name);
+            String escapedUrl = escapeHtml(chartUrl);
+            response.getWriter().println("<b>" + escapedName + "</b><br>");
+            response.getWriter().println("<img src=\"" + escapedUrl + "\" alt=\"" + escapedName + " chart\">");
         } else {
-            response.getWriter().println("<b>Unknown graph name: " + name + "</b><br>");
+            // Escape HTML to prevent XSS attacks
+            String escapedName = escapeHtml(name);
+            response.getWriter().println("<b>Unknown graph name: " + escapedName + "</b><br>");
         }
     }
 
@@ -168,4 +174,53 @@ public abstract class AbstractGraphingServlet extends HttpServlet {
      * @return The list of possible graph names for which <tt>getGraphByName</tt> will return a valid chart generator.
      */
     protected abstract List<String> getAllKnownGraphNames();
+
+    /**
+     * Escapes HTML characters to prevent XSS attacks.
+     * 
+     * @param input The input string to escape
+     * @return The escaped string safe for HTML output
+     */
+    protected String escapeHtml(String input) {
+        if (input == null) {
+            return "";
+        }
+        return input.replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;")
+                   .replace("\"", "&quot;")
+                   .replace("'", "&#x27;")
+                   .replace("/", "&#x2F;");
+    }
+
+    /**
+     * Adds security headers to prevent common web vulnerabilities.
+     * 
+     * @param response The HTTP response to add headers to
+     */
+    protected void addSecurityHeaders(HttpServletResponse response) {
+        // Prevent MIME type sniffing
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        
+        // Prevent clickjacking
+        response.setHeader("X-Frame-Options", "DENY");
+        
+        // Enable XSS protection
+        response.setHeader("X-XSS-Protection", "1; mode=block");
+        
+        // Prevent caching of sensitive content
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Expires", "0");
+        
+        // CSP header to prevent XSS
+        response.setHeader("Content-Security-Policy", 
+            "default-src 'self'; " +
+            "script-src 'self' 'unsafe-inline'; " +
+            "style-src 'self' 'unsafe-inline'; " +
+            "img-src 'self' data: https:; " +
+            "font-src 'self'; " +
+            "object-src 'none'; " +
+            "base-uri 'self'");
+    }
 }

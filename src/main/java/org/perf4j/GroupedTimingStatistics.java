@@ -26,6 +26,8 @@ import java.util.*;
  * @author Alex Devine
  */
 public class GroupedTimingStatistics implements Serializable, Cloneable {
+    private static final long serialVersionUID = 1L;
+    
     private SortedMap<String, TimingStatistics> statisticsByTag = new TreeMap<String, TimingStatistics>();
     private long startTime;
     private long stopTime;

@@ -227,9 +227,8 @@ public class GraphingStatisticsAppender extends AppenderSkeleton implements Appe
         synchronized (downstreamAppenders) {
             downstreamAppenders.addAppender(appender);
         }
-    }
-
-    public Enumeration getAllAppenders() {
+    }    @SuppressWarnings({"rawtypes", "unchecked"})
+    public Enumeration<Appender> getAllAppenders() {
         synchronized (downstreamAppenders) {
             return downstreamAppenders.getAllAppenders();
         }
@@ -285,14 +284,12 @@ public class GraphingStatisticsAppender extends AppenderSkeleton implements Appe
         return false;
     }
 
-    public void close() {
-        //close any downstream appenders
+    public void close() {        //close any downstream appenders
         synchronized (downstreamAppenders) {
-            flush();
-
-            for (Enumeration enumer = downstreamAppenders.getAllAppenders();
-                 enumer != null && enumer.hasMoreElements();) {
-                Appender appender = (Appender) enumer.nextElement();
+            flush();            @SuppressWarnings({"rawtypes", "unchecked"})
+            Enumeration<Appender> enumer = downstreamAppenders.getAllAppenders();
+            while (enumer != null && enumer.hasMoreElements()) {
+                Appender appender = enumer.nextElement();
                 appender.close();
             }
         }

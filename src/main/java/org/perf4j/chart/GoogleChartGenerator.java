@@ -254,12 +254,14 @@ public class GoogleChartGenerator implements StatisticsChartGenerator {
 
             for (Map.Entry<String, TimingStatistics> tagWithData : statsByTag.entrySet()) {
                 String tag = tagWithData.getKey();
-                if (this.enabledTags == null || this.enabledTags.contains(tag)) {
-                    //get the corresponding value from tagsToXDataAndYData
+                if (this.enabledTags == null || this.enabledTags.contains(tag)) {                    //get the corresponding value from tagsToXDataAndYData
                     List<Number>[] xAndYData = tagsToXDataAndYData.get(tagWithData.getKey());
                     if (xAndYData == null) {
-                        tagsToXDataAndYData.put(tag, xAndYData = new List[]{new ArrayList<Number>(),
-                                                                            new ArrayList<Number>()});
+                        @SuppressWarnings({ "unchecked", "rawtypes" })
+                        List<Number>[] newXAndYData = new List[] { new ArrayList<Number>(),
+                                new ArrayList<Number>() };
+                        xAndYData = newXAndYData;
+                        tagsToXDataAndYData.put(tag, xAndYData);
                     }
 
                     //the x data is the start time of the window, the y data is the value

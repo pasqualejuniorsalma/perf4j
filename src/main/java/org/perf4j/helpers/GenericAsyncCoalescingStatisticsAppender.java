@@ -283,16 +283,34 @@ public class GenericAsyncCoalescingStatisticsAppender {
             handler.error("Unexpected error stopping AsyncCoalescingStatisticsAppender draining thread: "
                           + e.getMessage());
         }
-    }
-
-    /**
+    }    /**
      * Helper method instantiates a new StopWatchParser based on the StopWatchParserClassName option.
+     * Validates the class name and ensures it implements StopWatchParser for security.
      *
      * @return The newly created StopWatchParser
      */
     private StopWatchParser newStopWatchParser() {
         try {
-            return (StopWatchParser) Class.forName(stopWatchParserClassName).newInstance();
+            // Validate class name for security
+            if (stopWatchParserClassName == null || stopWatchParserClassName.trim().isEmpty()) {
+                throw new IllegalArgumentException("StopWatchParser class name cannot be null or empty");
+            }
+            
+            // Only allow specific packages for security
+            if (!stopWatchParserClassName.startsWith("org.perf4j.") && 
+                !stopWatchParserClassName.startsWith("java.") &&
+                !stopWatchParserClassName.startsWith("javax.")) {
+                throw new SecurityException("StopWatchParser class must be from allowed packages: " + stopWatchParserClassName);
+            }
+            
+            Class<?> clazz = Class.forName(stopWatchParserClassName);
+            
+            // Verify that the class implements StopWatchParser
+            if (!StopWatchParser.class.isAssignableFrom(clazz)) {
+                throw new IllegalArgumentException("Class " + stopWatchParserClassName + " does not implement StopWatchParser");
+            }
+            
+            return (StopWatchParser) clazz.newInstance();
         } catch (Exception e) {
             throw new RuntimeException("Could not create StopWatchParser: " + e.getMessage(), e);
         }

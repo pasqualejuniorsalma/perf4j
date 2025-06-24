@@ -26,6 +26,8 @@ import java.util.concurrent.Callable;
  * @author Alex Devine
  */
 public class TimedCallable<V> implements Callable<V>, Serializable {
+    private static final long serialVersionUID = 1L;
+    
     private Callable<V> wrappedTask;
     private LoggingStopWatch stopWatch;
 

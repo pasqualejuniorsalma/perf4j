@@ -32,6 +32,7 @@ import java.util.List;
  * @author Alex Devine
  */
 public class GraphingServlet extends AbstractGraphingServlet {
+    private static final long serialVersionUID = 1L;
 
     /**
      * Finds the specified graph by using the

@@ -20,6 +20,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 import org.perf4j.LoggingStopWatch;
+import org.perf4j.helpers.SerializationSecurityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -482,10 +483,10 @@ public class Slf4JStopWatch extends LoggingStopWatch {
     private void writeObject(ObjectOutputStream stream) throws IOException {
         stream.defaultWriteObject();
         stream.writeUTF(logger.getName());
-    }
-
-    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+    }    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
         stream.defaultReadObject();
-        this.logger = LoggerFactory.getLogger(stream.readUTF());
+        // Use secure deserialization to prevent CWE-502 vulnerabilities
+        String loggerName = SerializationSecurityUtils.readLoggerNameSafely(stream);
+        this.logger = LoggerFactory.getLogger(loggerName);
     }
 }

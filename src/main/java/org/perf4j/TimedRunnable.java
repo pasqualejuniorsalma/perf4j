@@ -25,6 +25,8 @@ import java.io.Serializable;
  * @author Alex Devine
  */
 public class TimedRunnable implements Runnable, Serializable {
+    private static final long serialVersionUID = 1L;
+    
     private Runnable wrappedTask;
     private LoggingStopWatch stopWatch;
 

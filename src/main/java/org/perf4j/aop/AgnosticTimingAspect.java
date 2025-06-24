@@ -1,9 +1,10 @@
 package org.perf4j.aop;
 
-import org.apache.commons.jexl.Expression;
-import org.apache.commons.jexl.ExpressionFactory;
-import org.apache.commons.jexl.JexlContext;
-import org.apache.commons.jexl.context.HashMapContext;
+import org.apache.commons.jexl3.JexlBuilder;
+import org.apache.commons.jexl3.JexlContext;
+import org.apache.commons.jexl3.JexlEngine;
+import org.apache.commons.jexl3.JexlExpression;
+import org.apache.commons.jexl3.MapContext;
 import org.perf4j.LoggingStopWatch;
 
 import java.util.Map;
@@ -18,13 +19,17 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author Marcin Zajączkowski, Alex Devine 
  */
-public class AgnosticTimingAspect {
-    /**
+public class AgnosticTimingAspect {    /**
      * This Map is used to cache compiled JEXL expressions. While theoretically unbounded, in reality the number of
      * possible keys is equivalent to the number of unique JEXL expressions created in @Profiled annotations, which
      * will have to be loaded in memory anyway when the class is loaded.
      */
-    private Map<String, Expression> jexlExpressionCache = new ConcurrentHashMap<String, Expression>(64, .75F, 16);
+    private final Map<String, JexlExpression> jexlExpressionCache = new ConcurrentHashMap<String, JexlExpression>(64, .75F, 16);
+    
+    /**
+     * The JEXL engine used for expression evaluation
+     */
+    private final JexlEngine jexlEngine = new JexlBuilder().create();
 
     /**
      * This method actually executes the profiled method. Your AOP-framework-specific class should delegate to this
@@ -149,17 +154,14 @@ public class AgnosticTimingAspect {
                                   Object[] args,
                                   Object annotatedObject,
                                   Object returnValue,
-                                  Throwable exceptionThrown) {
-        StringBuilder retVal = new StringBuilder(text.length());
-
-        //create a JexlContext to be used in all evaluations
-        JexlContext jexlContext = new HashMapContext();
+                                  Throwable exceptionThrown) {        StringBuilder retVal = new StringBuilder(text.length());        //create a JexlContext to be used in all evaluations
+        JexlContext jexlContext = new MapContext();
         for (int i = 0; i < args.length; i++) {
-            jexlContext.getVars().put("$" + i, args[i]);
+            jexlContext.set("$" + i, args[i]);
         }
-        jexlContext.getVars().put("$this", annotatedObject);
-        jexlContext.getVars().put("$return", returnValue);
-        jexlContext.getVars().put("$exception", exceptionThrown);
+        jexlContext.set("$this", annotatedObject);
+        jexlContext.set("$return", returnValue);
+        jexlContext.set("$exception", exceptionThrown);
 
         // look for {expression} in the passed in text
         int bracketIndex;
@@ -191,9 +193,7 @@ public class AgnosticTimingAspect {
         }
 
         return retVal.toString();
-    }
-
-    /**
+    }    /**
      * Helper method gets a compiled JEXL expression for the specified expression text, either from the cache or by
      * creating a new compiled expression.
      *
@@ -201,11 +201,11 @@ public class AgnosticTimingAspect {
      * @return A compiled JEXL expression representing the expression text
      * @throws Exception Thrown if there was an error compiling the expression text
      */
-    protected Expression getJexlExpression(String expressionText) throws Exception {
-        Expression retVal = jexlExpressionCache.get(expressionText);
+    protected JexlExpression getJexlExpression(String expressionText) throws Exception {
+        JexlExpression retVal = jexlExpressionCache.get(expressionText);
         if (retVal == null) {
             //Don't need synchronization here - if we end up calling createExpression in 2 separate threads, that's fine
-            jexlExpressionCache.put(expressionText, retVal = ExpressionFactory.createExpression(expressionText));
+            jexlExpressionCache.put(expressionText, retVal = jexlEngine.createExpression(expressionText));
         }
         return retVal;
     }

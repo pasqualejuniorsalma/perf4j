@@ -22,6 +22,7 @@ import java.io.ObjectOutputStream;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.perf4j.LoggingStopWatch;
+import org.perf4j.helpers.SerializationSecurityUtils;
 
 /**
  * This LoggingStopWatch uses a log4j Logger to persist the StopWatch messages. The various constructors allow you
@@ -362,10 +363,10 @@ public class Log4JStopWatch extends LoggingStopWatch {
     private void writeObject(ObjectOutputStream stream) throws IOException {
         stream.defaultWriteObject();
         stream.writeUTF(logger.getName());
-    }
-
-    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+    }    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
         stream.defaultReadObject();
-        this.logger = Logger.getLogger(stream.readUTF());
+        // Use secure deserialization to prevent CWE-502 vulnerabilities
+        String loggerName = SerializationSecurityUtils.readLoggerNameSafely(stream);
+        this.logger = Logger.getLogger(loggerName);
     }
 }
